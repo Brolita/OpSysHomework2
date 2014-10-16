@@ -1,0 +1,6 @@
+Todo:
+ 
+using json.load to load options
+RR with varible time sclice
+some algorithm G asked us for
+get final stats
