@@ -415,4 +415,8 @@ class scheduler:
 				for process in self.processes:			# for each process
 					finished = finished and not process.running # ask if they're done
 		
-scheduler({})
+#lets load the json options yay		
+optionsJson = open('options.json')
+data = json.load(optionsjson)
+		
+scheduler(data)
