@@ -108,7 +108,7 @@ class process:
 		self.mode = False
 		
 	def IOstop(self):
-		self.burst = 0
+		self.burst = math.floor(self.burstMin + (self.burstMax - self.burstMin) * random.random())
 		self._starttime = None
 		self.mode = None
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
