@@ -209,7 +209,7 @@ class scheduler:
 		
 		#self.mode = 2
 		if self.mode is 2: # RR
-			print "Round Robin Startedasdlfkjas;ldfjkasdf;lkasjdklf;jaskldfj;klasdfkl;asjdfkjasklfjaskljfklasjfkajsdfl;ajsdkl;"
+			print "Round Robin Started"
 			ready = []	
 			tempTime = self.timeSlice							# ready a list of ready job
 			while not finished:
