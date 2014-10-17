@@ -79,9 +79,7 @@ class process:
 		if "interactive" not in processData:
 			if debug:
 				print processId, "was not labeled interactive, defaulting to false"
-			processData["interactive"] = False
-			if self.processId is 0:
-				processData["interactive"] = True
+			processData["interactive"] = True if random.random() < .80 else False
 		self.interactive = processData["interactive"]
 		self.running = not self.interactive
 		if self.interactive:
@@ -114,7 +112,7 @@ class process:
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
 					
 	def canIOstop(self):
-		return self.mode is False and self.burst <= 0
+		return self.mode is False and time.getTime() - self._starttime > self.burst
 	
 	def start(self):
 		self._starttime = time.getTime()
@@ -153,7 +151,7 @@ class process:
 			self._waittime = time.getTime()
 			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
 			return True
-		return self._starttime is None and self.arrived and self.isRunning()
+		return self._starttime is None and self.arrived and self.isRunning() and not self.mode
 	
 	def isBursting(self):
 		return self._starttime is not None and self.mode
@@ -201,7 +199,7 @@ class scheduler:
 	def main(self):
 		finished = False
 		globe = 0
-		if self.mode is 1: # SJF non-preemptive
+		if self.mode is 0: # SJF non-preemptive
 			while not finished:
 				time.step()
 				if debug:
@@ -262,7 +260,7 @@ class scheduler:
 				for process in self.processes:			# for each process
 					finished = finished and not process.running # ask if they're done
 		
-		if self.mode is 0: # SJF preemptive
+		if self.mode is 1: # SJF preemptive
 			while not finished:
 				time.step()
 				if debug:
