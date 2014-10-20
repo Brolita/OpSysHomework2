@@ -137,10 +137,7 @@ class process:
 		self.burst = math.floor(self.burstMin + (self.burstMax - self.burstMin) * random.random())
 		if self.burstCount is 0:
 			self.running = False
-			return
-		if not self.interactive:
-			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
-	
+		
 	def runningTime(self):
 		return time.getTime() - self._startTime
 	
@@ -227,8 +224,7 @@ class scheduler:
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						if process.isInteractive(): 	# if its intertactive
-							process.IOwait()			# start IO
+						process.IOwait()				# start IO
 						self.jobs.remove(process)		# remove process from jobs
 						print "adding core " , process.core
 						self.freeCores.append(process.core) # add free core
@@ -360,8 +356,7 @@ class scheduler:
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						if process.isInteractive(): 	# if its intertactive
-							process.IOwait()			# start IO
+						process.IOwait()				# start IO
 						self.jobs.remove(process)		# remove process from jobs
 						self.freeCores.append(process.core) # add free core
 					elif debug:
@@ -421,7 +416,6 @@ class scheduler:
 					finished = finished and not process.running # ask if they're done
 		
 #lets load the json options yay		
-optionsJson = open('options.json')
-data = json.load(optionsjson)
+#data = json.loads('options.json')
 		
-scheduler(data)
+scheduler({})
