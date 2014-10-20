@@ -1,50 +1,52 @@
 {
-	mode: 2,
-	cores: 4,
-	timeSlice: 100,
-	processes: [
+	"mode": 2,
+	"cores": 4,
+	"timeSlice": 100,
+	"processes": [
 		{
-			arrivalTime: 0,
-			interactive: true,
-			burstCount: 8,
-			burstMax: 3000,
-			burstMin: 200,
-			IOmin: 1200,
-			IOmax: 3200
+			"arrivalTime": 0,
+			"interactive": true,
+			"burstCount": 8,
+			"burstMax": 3000,
+			"burstMin": 200,
+			"IOmin": 1200,
+			"IOmax": 3200
 		},
 		{
-			arrivalTime: 400,
-			interactive: true,
-			burstCount: 5,
-			burstMax: 3000,
-			burstMin: 200,
-			IOmin: 1200,
-			IOmax: 3200
+			"arrivalTime": 400,
+			"interactive": true,
+			"burstCount": 5,
+			"burstMax": 3000,
+			"burstMin": 200,
+			"IOmin": 1200,
+			"IOmax": 3200
 		},
 		{
-			arrivalTime: 600,
-			interactive: true,
-			burstCount: 4,
-			burstMax: 3000,
-			burstMin: 200,
-			IOmin: 1200,
-			IOmax: 3200
+			"arrivalTime": 600,
+			"interactive": true,
+			"burstCount": 4,
+			"burstMax": 3000,
+			"burstMin": 200,
+			"IOmin": 1200,
+			"IOmax": 3200
 		},
 		{
-			arrivalTime: 1000,
-			interactive: true,
-			burstCount: 1,
-			burstMax: 3000,
-			burstMin: 200,
-			IOmin: 1200,
-			IOmax: 3200
+			"arrivalTime": 1000,
+			"interactive": true,
+			"burstCount": 1,
+			"burstMax": 3000,
+			"burstMin": 200,
+			"IOmin": 1200,
+			"IOmax": 3200
 		},
 		{
-			arrivalTime: 5000,
-			interactive: false,
-			burstCount: 8,
-			burstMax: 3000,
-			burstMin: 200,
-		},
+			"arrivalTime": 5000,
+			"interactive": false,
+			"burstCount": 8,
+			"burstMax": 3000,
+			"burstMin": 200,
+			"IOmin": 1200,
+			"IOmax": 3200
+		}
 	]
 }
