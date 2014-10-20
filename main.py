@@ -43,6 +43,8 @@ class process:
 		self._burstwaittime = 0
 		self.arrived = False
 		self.lastWaitTime = 0;
+		self.contextSwitch = False
+		self.preempted = False
 		#self.arrivalTime
 		#self.burstCount
 		#self.burstMin
@@ -51,6 +53,12 @@ class process:
 		#self.IOmin
 		#self.IOmax
 		#self.running
+		
+		if "interactive" not in processData:
+			if debug:
+				print processId, "was not labeled interactive, defaulting to false"
+			processData["interactive"] = True if random.random() < .8 else False;
+		self.interactive = processData["interactive"]
 		
 		if "arrivalTime" not in processData: 
 			if debug:
@@ -68,35 +76,35 @@ class process:
 			if debug:
 				print processId, "does not have a burstMax, defaulting to 3000"
 			processData["burstMax"] = 3000
+			if self.interactive:
+				processData["burstMax"] = 200
 		if "burstMin" not in processData:
 			if debug: 
 				print processId, "does not have a burstMin, defaulting to 200"
 			processData["burstMin"] = 200
+			if self.interactive:
+				processData["burstMin"] = 20
 		self.burstCount = processData["burstCount"]
 		self.burstMax = processData["burstMax"]
 		self.burstMin = processData["burstMin"]
 	
 		self.burst = math.floor(self.burstMin + (self.burstMax - self.burstMin) * random.random())
-		
-		if "interactive" not in processData:
-			if debug:
-				print processId, "was not labeled interactive, defaulting to false"
-			processData["interactive"] = False
-			if self.processId is 0:
-				processData["interactive"] = True
-		self.interactive = processData["interactive"]
+	
 		self.running = not self.interactive
-		if self.interactive:
-			if "IOmax" not in processData:
-				if debug: 
-					print processId, "was labeled as interactive, but has no IOmax, defaulting to 3200"
-				processData["IOmax"] = 3200
-			if "IOmin" not in processData:
-				if debug:
-					print processId, "was labeled as interactive, but has no IOmin, defaulting to 100"
-				processData["IOmin"] = 1200
-			self.IOmax = processData["IOmax"]
-			self.IOmin = processData["IOmin"]
+		if "IOmax" not in processData:
+			if debug: 
+				print processId, "was labeled as interactive, but has no IOmax, defaulting to 3200"
+			processData["IOmax"] = 3200
+			if self.interactive:
+				processData["IOmax"] = 4500
+		if "IOmin" not in processData:
+			if debug:
+				print processId, "was labeled as interactive, but has no IOmin, defaulting to 100"
+			processData["IOmin"] = 1200
+			if self.interactive:
+				processData["IOmin"] = 1000
+		self.IOmax = processData["IOmax"]
+		self.IOmin = processData["IOmin"]
 		
 		if self.arrived:
 			print "[time 0ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
@@ -108,7 +116,6 @@ class process:
 		self._startTime = time.getTime()
 		self.burst = math.floor(self.IOmin + (self.IOmax - self.IOmin) * random.random())
 		self.mode = False
-	
 			
 	def IOstop(self):
 		self.burst = math.floor(self.burstMin + (self.burstMax - self.burstMin) * random.random())
@@ -117,7 +124,7 @@ class process:
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
 					
 	def canIOstop(self):
-		return self.mode is False and self.burst <= 0
+		return self.mode is False and time.getTime() - self.burst > self._startTime
 	
 	def start(self):
 		self._startTime = time.getTime()
@@ -127,8 +134,10 @@ class process:
 		self.mode = True
 	
 	def preempt(self):
+		self.contextSwitch = True
 		self._waitTime = time.getTime()
 		self.mode = None
+		self.preempted = True
 	
 	def stop(self):
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "finished", "(turnaround time", str(time.getTime() - self._startTime) + "ms, wait time", str(self._burstwaittime) + "ms)"
@@ -137,23 +146,27 @@ class process:
 		self.mode = None
 		self.burstCount -= 1
 		self.burst = math.floor(self.burstMin + (self.burstMax - self.burstMin) * random.random())
+		self.contextSwitch = True
 		if self.burstCount is 0:
 			self.running = False
-			return
-		if not self.interactive:
-			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
-	
+		
 	def runningTime(self):
 		return time.getTime() - self._startTime
+	
 	def waitingTime(self):
 		self.lastWaitTime = time.getTime() - self._waitTime
 		return self.lastWaitTime
+	
 	def waitIncremented(self):
 		self.lastWaitTime-=1200
-	def step(self):
-		if self.mode is not None:
-			self.burst -= time.dt
 	
+	def step(self):
+		if self.preempted:
+			self.preempted = False
+			self._startTime = time.getTime()
+		elif self.mode is not None:
+			self.burst -= time.dt
+			
 	def isRunning(self):
 		return (self.running or self.interactive)
 	
@@ -163,12 +176,15 @@ class process:
 			self._waitTime = time.getTime()
 			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
 			return True
-		return self._startTime is None and self.arrived and self.isRunning()
+		return self._startTime is None and self.arrived and self.isRunning() and not self.preempt and not self.contextSwitch
 	
 	def isBursting(self):
 		return self._startTime is not None and self.mode
 		
 	def canStop(self):
+		if self.contextSwitch: 
+			self.contextSwitch = False
+			self._waitTime = time.getTime()
 		return self.isBursting() and self.burst <= 0
 		
 	def timeLeft(self):    # note, only can be called is canStart is false
@@ -244,7 +260,7 @@ class scheduler:
 						
 				for process in self.processes:
 					if process.waitingTime() > 1200:
-						process.waitIncremented
+						process.waitIncremented()
 					if process.isWaiting():
 						process.priority = math.floor(random.random()*5)
 						ready.append(process)
@@ -316,8 +332,6 @@ class scheduler:
 		
 		
 		
-		
-		
 		#self.mode = 2
 		if self.mode is 2: # RR
 			print "Round Robin Started"
@@ -337,8 +351,7 @@ class scheduler:
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						if process.isInteractive(): 	# if its intertactive
-							process.IOwait()			# start IO
+						process.IOwait()				# start IO
 						self.jobs.remove(process)		# remove process from jobs
 						print "adding core " , process.core
 						self.freeCores.append(process.core) # add free core
@@ -396,9 +409,6 @@ class scheduler:
 
 		
 		
-
-		
-		
 		
 		if self.mode is 1: # SJF non-preemptive
 			while not finished:
@@ -414,8 +424,7 @@ class scheduler:
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						if process.isInteractive(): 	# if its intertactive
-							process.IOwait()			# start IO
+						process.IOwait()				# start IO
 						self.jobs.remove(process)		# remove process from jobs
 						self.freeCores.append(process.core) # add free core
 					elif debug:
@@ -471,12 +480,12 @@ class scheduler:
 				'''
 				for process in self.jobs:
 					process.step()						# step the job
+					
 					if process.canStop(): 				# job can stop
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						if process.isInteractive(): 	# if its intertactive
-							process.IOwait()			# start IO
+						process.IOwait()				# start IO
 						self.jobs.remove(process)		# remove process from jobs
 						self.freeCores.append(process.core) # add free core
 					elif debug:
@@ -484,10 +493,6 @@ class scheduler:
 				for process in self.processes:
 					if process.canIOstop():
 						process.IOstop()
-				#if time.getTime() - 10 > globe:
-					#for process in self.processes:
-						#print process.processId, process.burst
-					#globe = time.getTime()
 				if len(self.jobs) == self.cores:		# if we have a full queue
 					continue							# stop this loop
 				'''
@@ -496,6 +501,8 @@ class scheduler:
 				
 				all = []								# ready a list of all jobs
 				for process in self.processes:
+					if not process.isRunning() and not process.isWaiting():
+						continue
 					i = 0								# start at 0
 					#ordered insertion
 					while True:							# loop up
@@ -508,15 +515,12 @@ class scheduler:
 							all.insert(i, process) #insert us infront of it
 							break
 						i+=1
-				
 				for i in range(len(all)):				# add all the new free cores
 					if all[i] in self.jobs and i >= self.cores - 1: # for processes that no longer quailify 
 						print " ___ PREEMPT ___ "
 						all[i].preempt()				# preempt the process
 						self.jobs.remove(all[i])
-						self.freeCores.append(all[i].core) # add the core we just freed					
-				
-				
+						self.freeCores.append(all[i].core) # add the core we just freed							
 				for process in all:
 					if len(self.jobs) == self.cores:	# when we've filled up the queue
 						break							# stop
