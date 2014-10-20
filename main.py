@@ -5,6 +5,10 @@ import math
 
 debug = False
 
+analyses = []
+#the amount of time each core has been running in total (minus context switches), indexed by core number
+coreUsages = []
+
 class timeGetter:
 	def __init__(self):
 		self.startTime = datetime.datetime.now()
@@ -125,10 +129,20 @@ class process:
 		self.mode = True
 	
 	def preempt(self):
+		#update the amount of time this cpu has been running
+		coreUsages[self.core] += self.runningTime()
 		self._waitTime = time.getTime()
 		self.mode = None
 	
 	def stop(self):
+		turnAround = time.getTime() - self._startTime
+		#create an analysis instance   
+		newAnal = Analysis( turnAround, self.waitTime, self.processId)
+		analyses.append(newAnal)
+		
+		#update the amount of time this cpu has been running
+		coreUsages[self.core] += self.runningTime()
+	
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "finished", "(turnaround time", str(time.getTime() - self._startTime) + "ms, wait time", str(self._burstwaittime) + "ms)"
 		self._waitTime = time.getTime()
 		self._startTime = None
@@ -420,8 +434,51 @@ class scheduler:
 				for process in self.processes:			# for each process
 					finished = finished and not process.running # ask if they're done
 		
+#will look at all analyses and make any total or avg calculations needed, then print the analyses
+def AnalyzeAndPrint():
+	minTurn = 0
+	maxTurn = 0
+	avgTurn = 0
+	minWait = 0
+	maxWait = 0
+	avgWait = 0
+	for anal in analyses:
+		#first do turn around things
+		avgTurn += anal.turnAround
+		if anal.turnAround < minTurn:
+			minTurn = anal.turnAround
+		elif anal.turnAround > maxTurn:
+			maxTurn = anal.turnAround
+		#now do wait time things
+		avgWait += anal.waitTime
+		if anal.waitTime < minWait:
+			minWait = anal.wait
+		elif anal.waitTime > maxWait:
+			maxWait = anal.waitTime
+	
+	#print turn around time statistics
+	print "Turnaround time: min " + str(minTurn) + "ms; avg " + str(avgTurn) + "ms; max " + str(maxTurn) + "ms"
+	#print wait time statistics
+	print "Total wait time: min " + str(minWait) + "ms; avg " + str(avgWait) + "ms; max " + str(maxWait) + "ms"
+	#print CPU utilization stuff
+	total = 0
+	for i in coreUsages:
+		coreUsages[i] /= Time.getTime()
+	
+		total += i
+	avgCPU = total / len(coreUsages)
+	print "Average CPU utilization per process: " + str(avgCPU) + "%"
+	
+	#print CPU utilization per process stuff
+	print "Average CPU utilization per process:"
+	for i in analyses:
+		print str(i.processId) + ":"
+		
+		
 #lets load the json options yay		
 optionsJson = open('options.json')
-data = json.load(optionsjson)
+data = json.loads(optionsjson)
 		
-scheduler(data)
+scheduler({})
+
+AnalyzeAndPrint()
