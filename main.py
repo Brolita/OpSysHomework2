@@ -37,6 +37,7 @@ class process:
 		self.core = -1
 		self.waitTime = 0
 		self.mode = None
+		self.priority = 0
 		self._startTime = None
 		self._waitTime = time.getTime()
 		self._burstwaittime = 0
@@ -232,7 +233,6 @@ class scheduler:
 		
 		
 		
-		
 		if self.mode is 3: # BULLSHIT
 			ready = []	
 			while not finished:
@@ -273,9 +273,35 @@ class scheduler:
 				if len(self.jobs) == self.cores:		# if we have a full queue
 					continue							# stop this loop
 					
+				all = []
 				
+				for process in self.processes:
+					i = 0								# start at 0
+					#ordered insertion
+					while True:							# loop up
+						if i >= len(all):				# if were at the end
+							all.append(process)			# insert and break
+							break
+						if debug:
+							print "loop", i, "checking priority", process.priority, "against", all[i].priority
+						if process.priority < all[i].priority: # if were less then the one were looking at
+							all.insert(i, process) #insert us infront of it
+							break
+						i+=1
+				
+				for i in range(len(all)):				# add all the new free cores
+					if all[i] in self.jobs and i >= self.cores - 1: # for processes that no longer quailify 
+						print " ___ PREEMPT ___ "
+						all[i].preempt()				# preempt the process
+						self.jobs.remove(all[i])
+						self.freeCores.append(all[i].core) # add the core we just freed					
+				
+
+				
+				
+
 	
-							
+				ready = all
 							
 				for process in ready:
 				
@@ -299,6 +325,7 @@ class scheduler:
 		
 		
 
+		
 		
 		
 		
@@ -355,38 +382,6 @@ class scheduler:
 					continue							# stop this loop
 					
 				
-				
-				
-				all = []
-				
-				for process in self.processes:
-					i = 0								# start at 0
-					#ordered insertion
-					while True:							# loop up
-						if i >= len(all):				# if were at the end
-							all.append(process)			# insert and break
-							break
-						if debug:
-							print "loop", i, "checking priority", process.priority, "against", all[i].priority
-						if process.priority < all[i].priority: # if were less then the one were looking at
-							all.insert(i, process) #insert us infront of it
-							break
-						i+=1
-				
-				for i in range(len(all)):				# add all the new free cores
-					if all[i] in self.jobs and i >= self.cores - 1: # for processes that no longer quailify 
-						print " ___ PREEMPT ___ "
-						all[i].preempt()				# preempt the process
-						self.jobs.remove(all[i])
-						self.freeCores.append(all[i].core) # add the core we just freed					
-				
-
-				
-				
-				
-				
-				
-				
 	
 							
 							
@@ -410,6 +405,7 @@ class scheduler:
 					finished = finished and not process.running # ask if they're done
 		
 		
+
 		
 		
 		
