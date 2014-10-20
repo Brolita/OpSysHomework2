@@ -323,7 +323,6 @@ class scheduler:
 		if self.mode is 2: # RR
 			print "Round Robin Started"
 			ready = []	
-			print self.freeCores
 			tempTime = self.timeSlice							# ready a list of ready job
 			while not finished:
 				time.step()
@@ -338,9 +337,9 @@ class scheduler:
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						process.IOwait()				# start IO
+						if process.isInteractive(): 	# if its intertactive
+							process.IOwait()			# start IO
 						self.jobs.remove(process)		# remove process from jobs
-						print "adding core " , process.core
 						self.freeCores.append(process.core) # add free core
 						ready.remove(process)
 					elif process.isBursting() and process.runningTime() > tempTime:
@@ -381,7 +380,6 @@ class scheduler:
 					if process not in self.jobs:
 						process.start()						# otherwise start this job
 						self.jobs.append(process)			# and add it to the job list
-						print self.freeCores
 						process.core = self.freeCores.pop(0)# add it to a free core
 						print "[time " + str(time.getTime()) + "ms]", ("Interactive" if process.interactive else "CPU-bound"), "process ID", process.processId, "starting on core", process.core + 1
 				'''
@@ -471,7 +469,8 @@ class scheduler:
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						process.IOwait()				# start IO
+						if process.isInteractive(): 	# if its intertactive
+							process.IOwait()			# start IO
 						self.jobs.remove(process)		# remove process from jobs
 						self.freeCores.append(process.core) # add free core
 					elif debug:
@@ -529,7 +528,5 @@ class scheduler:
 				finished = True							# assume were done
 				for process in self.processes:			# for each process
 					finished = finished and not process.running # ask if they're done
-#lets load the json options yay		
-#data = json.loads('options.json')
 		
 scheduler({})
