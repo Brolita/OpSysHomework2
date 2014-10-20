@@ -50,6 +50,12 @@ class process:
 		#self.IOmax
 		#self.running
 		
+		if "interactive" not in processData:
+			if debug:
+				print processId, "was not labeled interactive, defaulting to false"
+			processData["interactive"] = True if random.random() < .8 else False;
+		self.interactive = processData["interactive"]
+		
 		if "arrivalTime" not in processData: 
 			if debug:
 				print processId, "does not have a arrivalTime, defaulting to 0"
@@ -66,35 +72,35 @@ class process:
 			if debug:
 				print processId, "does not have a burstMax, defaulting to 3000"
 			processData["burstMax"] = 3000
+			if self.interactive:
+				processData["burstMax"] = 200
 		if "burstMin" not in processData:
 			if debug: 
 				print processId, "does not have a burstMin, defaulting to 200"
 			processData["burstMin"] = 200
+			if self.interactive:
+				processData["burstMin"] = 20
 		self.burstCount = processData["burstCount"]
 		self.burstMax = processData["burstMax"]
 		self.burstMin = processData["burstMin"]
 	
 		self.burst = math.floor(self.burstMin + (self.burstMax - self.burstMin) * random.random())
-		
-		if "interactive" not in processData:
-			if debug:
-				print processId, "was not labeled interactive, defaulting to false"
-			processData["interactive"] = False
-			if self.processId is 0:
-				processData["interactive"] = True
-		self.interactive = processData["interactive"]
+	
 		self.running = not self.interactive
-		if self.interactive:
-			if "IOmax" not in processData:
-				if debug: 
-					print processId, "was labeled as interactive, but has no IOmax, defaulting to 3200"
-				processData["IOmax"] = 3200
-			if "IOmin" not in processData:
-				if debug:
-					print processId, "was labeled as interactive, but has no IOmin, defaulting to 100"
-				processData["IOmin"] = 1200
-			self.IOmax = processData["IOmax"]
-			self.IOmin = processData["IOmin"]
+		if "IOmax" not in processData:
+			if debug: 
+				print processId, "was labeled as interactive, but has no IOmax, defaulting to 3200"
+			processData["IOmax"] = 3200
+			if self.interactive:
+				processData["IOmax"] = 4500
+		if "IOmin" not in processData:
+			if debug:
+				print processId, "was labeled as interactive, but has no IOmin, defaulting to 100"
+			processData["IOmin"] = 1200
+			if self.interactive:
+				processData["IOmin"] = 1000
+		self.IOmax = processData["IOmax"]
+		self.IOmin = processData["IOmin"]
 		
 		if self.arrived:
 			print "[time 0ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
