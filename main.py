@@ -350,8 +350,7 @@ class scheduler:
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						if process.isInteractive(): 	# if its intertactive
-							process.IOwait()			# start IO
+						process.IOwait()				# start IO
 						self.jobs.remove(process)		# remove process from jobs
 						self.freeCores.append(process.core) # add free core
 						ready.remove(process)
@@ -421,8 +420,7 @@ class scheduler:
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						if process.isInteractive(): 	# if its intertactive
-							process.IOwait()			# start IO
+						process.IOwait()				# start IO
 						self.jobs.remove(process)		# remove process from jobs
 						self.freeCores.append(process.core) # add free core
 					elif debug:
@@ -483,8 +481,7 @@ class scheduler:
 						if debug:
 							print "stopping process", process.processId
 						process.stop()    				# stop the job
-						if process.isInteractive(): 	# if its intertactive
-							process.IOwait()			# start IO
+						process.IOwait()				# start IO
 						self.jobs.remove(process)		# remove process from jobs
 						self.freeCores.append(process.core) # add free core
 					elif debug:
