@@ -198,7 +198,7 @@ class scheduler:
 		if "mode" not in scheduleData:
 			if debug:
 				print "Mode not listed in data, defaulting to 0 (SJF non-preemtive)"
-			scheduleData["mode"] = 0
+			scheduleData["mode"] = 2
 		self.mode = scheduleData["mode"]
 		if "cores" not in scheduleData:
 			if debug:
@@ -260,7 +260,7 @@ class scheduler:
 						
 				for process in self.processes:
 					if process.waitingTime() > 1200:
-						process.waitIncremented
+						process.waitIncremented()
 					if process.isWaiting():
 						process.priority = math.floor(random.random()*5)
 						ready.append(process)
