@@ -198,7 +198,7 @@ class scheduler:
 		if "mode" not in scheduleData:
 			if debug:
 				print "Mode not listed in data, defaulting to 0 (SJF non-preemtive)"
-			scheduleData["mode"] = 2
+			scheduleData["mode"] = 0
 		self.mode = scheduleData["mode"]
 		if "cores" not in scheduleData:
 			if debug:
@@ -262,11 +262,13 @@ class scheduler:
 						process.waitIncremented()
 					if process.isWaiting() and process not in ready:
 						process.priority = math.floor(random.random()*5)
-						ready.append(process)
+						if process.isRunning():
+							ready.append(process)
 					elif process.canIOstop() and process not in ready:
 						process.priority = math.floor(random.random()*5)
 						process.IOstop()
-						ready.append(process)
+						if process.isRunning():
+							ready.append(process)
 						
 						
 				if len(self.jobs) == self.cores:		# if we have a full queue
