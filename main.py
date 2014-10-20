@@ -43,7 +43,7 @@ class process:
 		self._burstwaittime = 0
 		self.arrived = False
 		self.lastWaitTime = 0;
-		self.contextSwitch = False
+		self.contextSwitch = None
 		self.preempted = False
 		#self.arrivalTime
 		#self.burstCount
@@ -119,6 +119,7 @@ class process:
 			
 	def IOstop(self):
 		self.burst = math.floor(self.burstMin + (self.burstMax - self.burstMin) * random.random())
+		self._waitTime = time.getTime()
 		self._startTime = None
 		self.mode = None
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
@@ -132,22 +133,22 @@ class process:
 			self.waitTime += self._startTime - self._waitTime 
 			self._burstwaittime += self._startTime - self._waitTime
 		self.mode = True
-		if not self.contextSwitch:
+		if self.contextSwitch is None:
 			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "starting on core", self.core + 1
 				
 	def preempt(self):
-		self.contextSwitch = True
+		self.contextSwitch = time.getTime()
 		self._waitTime = time.getTime()
 		self.mode = None
 		self.preempted = True
-		self.contextSwitch = True
 	
 	def contextSwitching(self):
-		self.contextSwitch = True
+		self.contextSwitch = time.getTime()
 	
 	def stop(self):
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "finished", "(turnaround time", str(time.getTime() - self._startTime) + "ms, wait time", str(self._burstwaittime) + "ms)"
-		self._waitTime = time.getTime()
+		self._burstwaittime = 0
+		#self._waitTime = time.getTime()
 		self._startTime = None
 		self.mode = None
 		self.burstCount -= 1
@@ -166,7 +167,11 @@ class process:
 		self.lastWaitTime-=1200
 	
 	def step(self):
-		if self.preempted:
+		if self.contextSwitch is not None and time.getTime() - self.contextSwitch >= 1:
+			self.contextSwitch = None
+			self._startTime = time.getTime()
+			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "starting on core", self.core + 1
+		elif self.preempted:
 			self.preempted = False
 			self._startTime = time.getTime()
 		elif self.mode is not None:
@@ -181,19 +186,15 @@ class process:
 			self._waitTime = time.getTime()
 			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
 			return True
-		return self._startTime is None and self.arrived and self.isRunning() and not self.preempted and not self.contextSwitch
+		return self._startTime is None and self.arrived and self.isRunning() and not self.preempted and not self.contextSwitch is not None
 	
 	def isBursting(self):
 		return self._startTime is not None and self.mode
 		
 	def canStop(self):
-		if self.contextSwitch: 
-			self.contextSwitch = False
-			if self.mode is not None:
-				self._startTime = time.getTime()
-				print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "starting on core", self.core + 1
-			else:
-				self._waitTime = time.getTime()
+		if self.contextSwitch is not None and time.getTime() - self.contextSwitch >= 1 and self.mode is None:
+			self.contextSwitch = None
+			self._waitTime = time.getTime()
 		return self.isBursting() and self.burst <= 0
 		
 	def timeLeft(self):    # note, only can be called is canStart is false
@@ -207,12 +208,12 @@ class scheduler:
 		if "mode" not in scheduleData:
 			if debug:
 				print "Mode not listed in data, defaulting to 0 (SJF non-preemtive)"
-			scheduleData["mode"] = 0
+			scheduleData["mode"] = 1
 		self.mode = scheduleData["mode"]
 		if "cores" not in scheduleData:
 			if debug:
 				print "Cores not listed in data, defauling to 4 cores"
-			scheduleData["cores"] = 4
+			scheduleData["cores"] = 1
 		self.cores = scheduleData["cores"]
 		self.freeCores = range(self.cores)
 		if self.mode == 2:
@@ -418,7 +419,7 @@ class scheduler:
 		
 		
 		
-		if self.mode is 1: # SJF non-preemptive
+		if self.mode is 0: # SJF non-preemptive
 			while not finished:
 				time.step()
 				if debug:
@@ -440,7 +441,6 @@ class scheduler:
 						print process.burst, "time remaining on process", process.processId
 				for process in self.processes:
 					if process.canIOstop():
-						print "a"
 						process.IOstop()
 				if len(self.jobs) == self.cores:		# if we have a full queue
 					continue							# stop this loop
@@ -479,7 +479,7 @@ class scheduler:
 				for process in self.processes:			# for each process
 					finished = finished and not process.running # ask if they're done
 		
-		if self.mode is 0: # SJF preemptive
+		if self.mode is 1: # SJF preemptive
 			while not finished:
 				time.step()
 				if debug:
@@ -503,8 +503,6 @@ class scheduler:
 				for process in self.processes:
 					if process.canIOstop():
 						process.IOstop()
-				if len(self.jobs) == self.cores:		# if we have a full queue
-					continue							# stop this loop
 				'''
 				new jobs
 				'''	
