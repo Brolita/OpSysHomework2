@@ -207,12 +207,13 @@ class scheduler:
 		if "mode" not in scheduleData:
 			if debug:
 				print "Mode not listed in data, defaulting to 0 (SJF non-preemtive)"
-			scheduleData["mode"] = 0
+			scheduleData["mode"] = 3
 		self.mode = scheduleData["mode"]
 		if "cores" not in scheduleData:
 			if debug:
 				print "Cores not listed in data, defauling to 4 cores"
 			scheduleData["cores"] = 4
+			
 		self.cores = scheduleData["cores"]
 		self.freeCores = range(self.cores)
 		if self.mode == 2:
@@ -225,7 +226,7 @@ class scheduler:
 		if "processes" not in scheduleData:
 			if debug:
 				print "No processes supplied, making 5 defaults"
-			for i in range(20):
+			for i in range(5):
 				self.processes.append(process({}, i))
 		else:
 			for i in range(len(scheduleData["processes"])):
@@ -285,7 +286,7 @@ class scheduler:
 					
 				all = []
 				
-				for process in self.processes:
+				for process in ready:
 					i = 0								# start at 0
 					#ordered insertion
 					while True:							# loop up
@@ -320,10 +321,9 @@ class scheduler:
 					if debug:
 						print "process", process.processId, "being added"
 					if process not in self.jobs:
-						process.start()						# otherwise start this job
 						self.jobs.append(process)			# and add it to the job list
 						process.core = self.freeCores.pop(0)# add it to a free core
-						print "[time " + str(time.getTime()) + "ms]", ("Interactive" if process.interactive else "CPU-bound"), "process ID", process.processId, "starting on core", process.core + 1
+						process.start()						# otherwise start this job
 				'''
 				check for end condition
 				'''
@@ -373,7 +373,6 @@ class scheduler:
 						self.jobs.remove(process)
 						self.freeCores.append(process.core) # add the core we just freed					
 						
-						
 						ready.remove(process)
 						ready.append(process)
 					elif debug:
@@ -402,10 +401,10 @@ class scheduler:
 					if debug:
 						print "process", process.processId, "being added"
 					if process not in self.jobs:
-						process.start()						# otherwise start this job
 						self.jobs.append(process)			# and add it to the job list
 						process.core = self.freeCores.pop(0)# add it to a free core
-						print "[time " + str(time.getTime()) + "ms]", ("Interactive" if process.interactive else "CPU-bound"), "process ID", process.processId, "starting on core", process.core + 1
+						process.start()						# otherwise start this job
+				
 				'''
 				check for end condition
 				'''
