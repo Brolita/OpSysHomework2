@@ -134,7 +134,6 @@ class process:
 	def preempt(self):
 		#update the amount of time this cpu has been running
 		coreUsages[self.core] += self.runningTime()
-		print "BUTTSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS       ",coreUsages[self.core]
 		self.numOfContextSwitches += 1
 
 		self.contextSwitch = time.getTime()
@@ -227,7 +226,6 @@ class scheduler:
 				print "Mode not listed in data, defaulting to 0 (SJF non-preemtive)"
 			scheduleData["mode"] = 0
 		self.mode = scheduleData["mode"]
-		print self.mode
 		if "cores" not in scheduleData:
 			if debug:
 				print "Cores not listed in data, defauling to 4 cores"
@@ -578,8 +576,6 @@ def AnalyzeAndPrint():
 	total = 0
 	i = 0
 	while i < len(coreUsages):
-		print str(coreUsages[i]), time.getTime()
-		#print str(coreUsages[i]) +" , " + str(time.getTime()) + " , "+ str(coreUsages[i]/time.getTime())
 		coreUsages[i] /= time.getTime() * 1.0
 		total += coreUsages[i]
 		
@@ -591,16 +587,16 @@ def AnalyzeAndPrint():
 	#print CPU utilization per process stuff
 	print "Average CPU utilization per process:"
 	for i in analyses:
-		print str(i.processId) + ": " + str(i.avgCPUutil) 
+		print str(i.processId) + ": " + str(i.avgCPUutil)  + "%"
 		
-		
+
 #lets load the json options yay		
 #optionsJson = open('options.json')
 #data = json.loads(optionsJson)
 
 s = scheduler({
-	"mode": 3,
-	"cores": 3,
+	"mode": 0,
+	"cores": 4,
 	"timeSlice": 100,
 	"processNumber": 10
 })
