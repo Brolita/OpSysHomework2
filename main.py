@@ -540,10 +540,8 @@ class scheduler:
 					finished = finished and not process.running # ask if they're done
 		
 s = scheduler({
-	"mode": 2,
+	"mode": 3,
 	"cores": 3,
-	"mode": 0,
-	"cores": 4,
 	"timeSlice": 100,
 	"processNumber": 10
 })
