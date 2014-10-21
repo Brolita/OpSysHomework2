@@ -539,13 +539,6 @@ class scheduler:
 				for process in self.processes:			# for each process
 					finished = finished and not process.running # ask if they're done
 		
-s = scheduler({
-	"mode": 3,
-	"cores": 3,
-	"timeSlice": 100,
-	"processNumber": 10
-})
-
 #will look at all analyses and make any total or avg calculations needed, then print the analyses
 def AnalyzeAndPrint():
 	#so if time.getTime() = 0 then every processes is interactive and thus no time is stepped so there doesn't need to be any analyses anyway
@@ -605,4 +598,10 @@ def AnalyzeAndPrint():
 #optionsJson = open('options.json')
 #data = json.loads(optionsJson)
 
+s = scheduler({
+	"mode": 3,
+	"cores": 3,
+	"timeSlice": 100,
+	"processNumber": 10
+})
 AnalyzeAndPrint()
