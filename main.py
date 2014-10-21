@@ -133,6 +133,7 @@ class process:
 	def preempt(self):
 		#update the amount of time this cpu has been running
 		coreUsages[self.core] += self.runningTime()
+		print "BUTTSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS       ",coreUsages[self.core]
 		self.numOfContextSwitches += 1
 
 		self.contextSwitch = time.getTime()
@@ -540,7 +541,7 @@ class scheduler:
 					finished = finished and not process.running # ask if they're done
 		
 s = scheduler({
-	"mode": 2,
+	"mode": 0,
 	"cores": 4,
 	"timeSlice": 100,
 	"processes": [
@@ -631,9 +632,11 @@ def AnalyzeAndPrint():
 	total = 0
 	i = 0
 	while i < len(coreUsages):
+		print str(coreUsages[i]), time.getTime()
 		#print str(coreUsages[i]) +" , " + str(time.getTime()) + " , "+ str(coreUsages[i]/time.getTime())
-		coreUsages[i] /= time.getTime()
+		coreUsages[i] /= time.getTime() * 1.0
 		total += coreUsages[i]
+		
 		i += 1
 		
 	avgCPU = (total / len(coreUsages)) * 100
