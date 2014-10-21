@@ -58,6 +58,7 @@ class process:
 		#self.IOmin
 		#self.IOmax
 		#self.running
+		self.numOfContextSwitches = 0
 		
 		if "interactive" not in processData:
 			if debug:
@@ -142,8 +143,8 @@ class process:
 				
 	def preempt(self):
 		#update the amount of time this cpu has been running
-		#print "NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO " + str(self.core)
 		coreUsages[self.core] += self.runningTime()
+		self.numOfContextSwitches += 1
 
 		self.contextSwitch = True
 		self._waitTime = time.getTime()
@@ -162,11 +163,10 @@ class process:
 			#if not self.interactive:
 			turnAround = time.getTime() - self._startTime
 			#create an analysis instance   
-			newAnal = Analysis.Analysis( turnAround, self.waitTime, self.processId)
+			newAnal = Analysis.Analysis( turnAround, self.waitTime, self.processId, self.numOfContextSwitches)
 			analyses.append(newAnal)
 		
 			#update the amount of time this cpu has been running
-			#print "HEYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY" + str(self.core)
 			coreUsages[self.core] += self.runningTime()
 	
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "finished", "(turnaround time", str(time.getTime() - self._startTime) + "ms, wait time", str(self._burstwaittime) + "ms)"
@@ -632,7 +632,7 @@ def AnalyzeAndPrint():
 	#print CPU utilization per process stuff
 	print "Average CPU utilization per process:"
 	for i in analyses:
-		print str(i.processId) + ":"
+		print str(i.processId) + ": " + str(i.avgCPUutil) 
 		
 		
 #lets load the json options yay		

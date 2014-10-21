@@ -1,11 +1,11 @@
 class Analysis:
 	#should take in as parameters things like wait time, burst time etc
-	def __init__(self, _turnAround, _waitTime, _processId):
+	def __init__(self, _turnAround, _waitTime, _processId, _numOfContextSwitches):
 		self.turnAround = _turnAround
 		self.waitTime = _waitTime
 		self.processId = _processId
 		
-		#self.avgCPUutil = 
+		self.avgCPUutil = (self.turnAround - self.waitTime) / ((self.turnAround - self.waitTime) + _numOfContextSwitches * 2)
 		#all of the necessary statistics should be calculated in the init
 		
 	#calculates the turn around time
