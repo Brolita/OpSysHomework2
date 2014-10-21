@@ -126,7 +126,7 @@ class process:
 		self.burst = math.floor(self.burstMin + (self.burstMax - self.burstMin) * random.random())
 		self._startTime = None
 		self.mode = None
-		print "A[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
+		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
 					
 	def canIOstop(self):
 		return self.mode is False and time.getTime() - self.burst > self._startTime
@@ -137,7 +137,9 @@ class process:
 			self.waitTime += self._startTime - self._waitTime 
 			self._burstwaittime += self._startTime - self._waitTime
 		self.mode = True
-	
+		if not self.contextSwitch:
+			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "starting on core", self.core + 1
+				
 	def preempt(self):
 		#update the amount of time this cpu has been running
 		#print "NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO " + str(self.core)
@@ -147,6 +149,9 @@ class process:
 		self._waitTime = time.getTime()
 		self.mode = None
 		self.preempted = True
+		self.contextSwitch = True
+	
+	def contextSwitching(self):
 		self.contextSwitch = True
 	
 	def stop(self):
@@ -197,7 +202,7 @@ class process:
 		if not self.arrived and time.getTime() > self.arrivalTime:
 			self.arrived = True
 			self._waitTime = time.getTime()
-			print "B[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
+			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time)"
 			return True
 		return self._startTime is None and self.arrived and self.isRunning() and not self.preempted and not self.contextSwitch
 	
@@ -207,7 +212,11 @@ class process:
 	def canStop(self):
 		if self.contextSwitch: 
 			self.contextSwitch = False
-			self._waitTime = time.getTime()
+			if self.mode is not None:
+				self._startTime = time.getTime()
+				print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "starting on core", self.core + 1
+			else:
+				self._waitTime = time.getTime()
 		return self.isBursting() and self.burst <= 0
 		
 	def timeLeft(self):    # note, only can be called is canStart is false
@@ -221,12 +230,13 @@ class scheduler:
 		if "mode" not in scheduleData:
 			if debug:
 				print "Mode not listed in data, defaulting to 0 (SJF non-preemtive)"
-			scheduleData["mode"] = 0
+			scheduleData["mode"] = 3
 		self.mode = scheduleData["mode"]
 		if "cores" not in scheduleData:
 			if debug:
 				print "Cores not listed in data, defauling to 4 cores"
 			scheduleData["cores"] = 4
+			
 		self.cores = scheduleData["cores"]
 		self.freeCores = range(self.cores)
 		if self.mode == 2:
@@ -306,7 +316,7 @@ class scheduler:
 					
 				all = []
 				
-				for process in self.processes:
+				for process in ready:
 					i = 0								# start at 0
 					#ordered insertion
 					while True:							# loop up
@@ -341,10 +351,9 @@ class scheduler:
 					if debug:
 						print "process", process.processId, "being added"
 					if process not in self.jobs:
-						process.start()						# otherwise start this job
 						self.jobs.append(process)			# and add it to the job list
 						process.core = self.freeCores.pop(0)# add it to a free core
-						print "[time " + str(time.getTime()) + "ms]", ("Interactive" if process.interactive else "CPU-bound"), "process ID", process.processId, "starting on core", process.core + 1
+						process.start()						# otherwise start this job
 				'''
 				check for end condition
 				'''
@@ -394,7 +403,6 @@ class scheduler:
 						self.jobs.remove(process)
 						self.freeCores.append(process.core) # add the core we just freed					
 						
-						
 						ready.remove(process)
 						ready.append(process)
 					elif debug:
@@ -423,10 +431,10 @@ class scheduler:
 					if debug:
 						print "process", process.processId, "being added"
 					if process not in self.jobs:
-						process.start()						# otherwise start this job
 						self.jobs.append(process)			# and add it to the job list
 						process.core = self.freeCores.pop(0)# add it to a free core
-						print "[time " + str(time.getTime()) + "ms]", ("Interactive" if process.interactive else "CPU-bound"), "process ID", process.processId, "starting on core", process.core + 1
+						process.start()						# otherwise start this job
+				
 				'''
 				check for end condition
 				'''
@@ -490,10 +498,9 @@ class scheduler:
 						break							# stop
 					if debug:
 						print "process", process.processId, "being added"
-					process.start()						# otherwise start this job
 					self.jobs.append(process)			# and add it to the job list
 					process.core = self.freeCores.pop(0)# add it to a free core
-					print "[time " + str(time.getTime()) + "ms]", ("Interactive" if process.interactive else "CPU-bound"), "process ID", process.processId, "starting on core", process.core + 1
+					process.start()						# otherwise start this job
 				'''
 				check for end condition
 				'''
@@ -547,12 +554,14 @@ class scheduler:
 							all.insert(i, process) #insert us infront of it
 							break
 						i+=1
+				freed = []
 				for i in range(len(all)):				# add all the new free cores
-					if all[i] in self.jobs and i >= self.cores - 1: # for processes that no longer quailify 
-						print " ___ PREEMPT ___ "
+					if all[i] in self.jobs and i >= self.cores: # for processes that no longer quailify 
+						freed.append(all[i].processId)
 						all[i].preempt()				# preempt the process
 						self.jobs.remove(all[i])
-						self.freeCores.append(all[i].core) # add the core we just freed							
+						self.freeCores.append(all[i].core) # add the core we just freed	
+						
 				for process in all:
 					if len(self.jobs) == self.cores:	# when we've filled up the queue
 						break							# stop
@@ -560,10 +569,12 @@ class scheduler:
 						continue						# continue
 					if debug:
 						print "process", process.processId, "being added"
-					process.start()						# otherwise start this job
+					if(len(freed) != 0):
+						print "[time " + str(time.getTime()) + "ms]", "Context switch", "(swapping out process ID", freed.pop(0), "for process ID", str(process.processId) + ")"
+						process.contextSwitching()
 					self.jobs.append(process)			# and add it to the job list
 					process.core = self.freeCores.pop(0)# add it to a free core
-					print "[time " + str(time.getTime()) + "ms]", ("Interactive" if process.interactive else "CPU-bound"), "process ID", process.processId, "starting on core", process.core + 1
+					process.start()						# otherwise start this job
 				'''
 				check for end condition
 				'''
