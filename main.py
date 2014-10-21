@@ -47,6 +47,7 @@ class process:
 		#self.IOmin
 		#self.IOmax
 		#self.running
+		self.numOfContextSwitches = 0
 		
 		if "interactive" not in processData:
 			if debug:
@@ -132,8 +133,10 @@ class process:
 				
 	def preempt(self):
 		#update the amount of time this cpu has been running
-		#print "NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO " + str(self.core)
 		coreUsages[self.core] += self.runningTime()
+		print "BUTTSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS       ",coreUsages[self.core]
+		self.numOfContextSwitches += 1
+
 		self.contextSwitch = time.getTime()
 		self._startTime = None
 		self._waitTime = time.getTime()
@@ -154,7 +157,6 @@ class process:
 			analyses.append(newAnal)
 		
 			#update the amount of time this cpu has been running
-			#print "HEYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY" + str(self.core)
 			coreUsages[self.core] += self.runningTime()
 	
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "finished", "(turnaround time", str(time.getTime() - self._startTime) + "ms, wait time", str(self._burstwaittime) + "ms)"
@@ -540,6 +542,8 @@ class scheduler:
 s = scheduler({
 	"mode": 2,
 	"cores": 3,
+	"mode": 0,
+	"cores": 4,
 	"timeSlice": 100,
 	"processNumber": 10
 })
@@ -583,9 +587,11 @@ def AnalyzeAndPrint():
 	total = 0
 	i = 0
 	while i < len(coreUsages):
+		print str(coreUsages[i]), time.getTime()
 		#print str(coreUsages[i]) +" , " + str(time.getTime()) + " , "+ str(coreUsages[i]/time.getTime())
-		coreUsages[i] /= time.getTime()
+		coreUsages[i] /= time.getTime() * 1.0
 		total += coreUsages[i]
+		
 		i += 1
 		
 	avgCPU = (total / len(coreUsages)) * 100
@@ -594,7 +600,7 @@ def AnalyzeAndPrint():
 	#print CPU utilization per process stuff
 	print "Average CPU utilization per process:"
 	for i in analyses:
-		print str(i.processId) + ":"
+		print str(i.processId) + ": " + str(i.avgCPUutil) 
 		
 		
 #lets load the json options yay		
