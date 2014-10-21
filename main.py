@@ -31,6 +31,7 @@ class process:
 		self.priority = math.floor(random.random()*5)
 		self.waitTime = 0
 		self.mode = None
+		self.totalTurnAroundTime = 0
 		self._startTime = None
 		self._waitTime = time.getTime()
 		self._burstwaittime = 0
@@ -100,7 +101,7 @@ class process:
 		self.IOmin = processData["IOmin"]
 		
 		if self.arrived:
-			print "[time 0ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time" + (")" if self.schedulerMode != 3 is None else "; priority " + str(self.priority) + ")")
+			print "[time 0ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time" + (")" if self.schedulerMode != 3 else "; priority " + str(self.priority) + ")")
 			
 	def isInteractive(self):
 		return self.interactive
@@ -115,7 +116,7 @@ class process:
 		self._waitTime = time.getTime()
 		self._startTime = None
 		self.mode = None
-		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time" + (")" if self.schedulerMode != 3 is None else "; priority " + str(self.priority) + ")")
+		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time" + (")" if self.schedulerMode != 3 else "; priority " + str(self.priority) + ")")
 					
 	def canIOstop(self):
 		return self.mode is False and time.getTime() - self.burst > self._startTime
@@ -145,12 +146,11 @@ class process:
 	def stop(self):
 		#update the amount of time this cpu has been running
 		coreUsages[self.core] += self.runningTime()
+		self.totalTurnAroundTime += self.runningTime()
 		#if the process is just finishing now
 		if self.burstCount is 1:
-			#if not self.interactive:
-			turnAround = time.getTime() - self._startTime
 			#create an analysis instance   
-			newAnal = Analysis.Analysis( turnAround, self.waitTime, self.processId)
+			newAnal = Analysis.Analysis( self.totalTurnAroundTime + self.waitTime, self.waitTime, self.processId)
 			analyses.append(newAnal)
 		
 			#update the amount of time this cpu has been running
@@ -177,13 +177,14 @@ class process:
 	
 	def waitIncremented(self):
 		self.lastWaitTime = time.getTime()
+		if self.priority == 0:
+			return
 		self.priority -= 1
 		print "[time " + str(time.getTime()) + "ms]", "Increased priority of", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "to", self.priority, "due to aging"
 	
 	def step(self):
 		if self.contextSwitch is not None and time.getTime() - self.contextSwitch >= 1:
 			self.contextSwitch = None
-			self._startTime = time.getTime()
 			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "starting on core", self.core + 1
 		elif self.preempted:
 			self.preempted = False
@@ -198,7 +199,7 @@ class process:
 		if not self.arrived and time.getTime() > self.arrivalTime:
 			self.arrived = True
 			self._waitTime = time.getTime()
-			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time" + (")" if self.schedulerMode != 3 is None else "; priority " + str(self.priority) + ")")
+			print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "entered ready queue", "(requires", str(self.burst) + "ms CPU time" + (")" if self.schedulerMode != 3 else "; priority " + str(self.priority) + ")")
 			return True
 		return self._startTime is None and self.arrived and self.isRunning()
 	
@@ -238,14 +239,12 @@ class scheduler:
 				scheduleData["timeSlice"] = 100
 			self.timeSlice = scheduleData["timeSlice"]
 		self.processes = []
-		if "processes" not in scheduleData:
-			if debug:
-				print "No processes supplied, making 5 defaults"
-			for i in range(5):
-				self.processes.append(process({}, i, self.mode))
-		else:
-			for i in range(len(scheduleData["processes"])):
-				self.processes.append(process(scheduleData["processes"][i], i, self.mode))
+		if "processNumber" not in scheduleData:
+			scheduleData["processNumber"] = 10
+		self.processNumber = scheduleData["processNumber"]
+		for i in range(self.processNumber):
+			self.processes.append(process({}, i, self.mode))
+		
 		
 		#initialize coreUsages
 		#print "NIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII" + str(self.cores)
@@ -540,55 +539,9 @@ class scheduler:
 		
 s = scheduler({
 	"mode": 2,
-	"cores": 4,
+	"cores": 3,
 	"timeSlice": 100,
-	"processes": [
-		{
-			"arrivalTime": 0,
-			"interactive": True,
-			"burstCount": 8,
-			"burstMax": 3000,
-			"burstMin": 200,
-			"IOmin": 1200,
-			"IOmax": 3200
-		},
-		{
-			"arrivalTime": 400,
-			"interactive": True,
-			"burstCount": 5,
-			"burstMax": 3000,
-			"burstMin": 200,
-			"IOmin": 1200,
-			"IOmax": 3200
-		},
-		{
-			"arrivalTime": 600,
-			"interactive": True,
-			"burstCount": 4,
-			"burstMax": 3000,
-			"burstMin": 200,
-			"IOmin": 1200,
-			"IOmax": 3200
-		},
-		{
-			"arrivalTime": 1000,
-			"interactive": True,
-			"burstCount": 1,
-			"burstMax": 3000,
-			"burstMin": 200,
-			"IOmin": 1200,
-			"IOmax": 3200
-		},
-		{
-			"arrivalTime": 5000,
-			"interactive": False,
-			"burstCount": 8,
-			"burstMax": 3000,
-			"burstMin": 200,
-			"IOmin": 1200,
-			"IOmax": 3200
-		}
-	]
+	"processNumber": 10
 })
 
 #will look at all analyses and make any total or avg calculations needed, then print the analyses
