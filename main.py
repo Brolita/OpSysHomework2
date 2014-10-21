@@ -2,6 +2,7 @@ import json
 import datetime
 import random
 import math
+import Analysis
 
 debug = False
 
@@ -139,6 +140,7 @@ class process:
 	
 	def preempt(self):
 		#update the amount of time this cpu has been running
+		#print "NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO " + str(self.core)
 		coreUsages[self.core] += self.runningTime()
 
 		self.contextSwitch = True
@@ -148,13 +150,19 @@ class process:
 		self.contextSwitch = True
 	
 	def stop(self):
-		turnAround = time.getTime() - self._startTime
-		#create an analysis instance   
-		newAnal = Analysis( turnAround, self.waitTime, self.processId)
-		analyses.append(newAnal)
-		
 		#update the amount of time this cpu has been running
 		coreUsages[self.core] += self.runningTime()
+		#if the process is just finishing now
+		if self.burstCount is 1:
+			#if not self.interactive:
+			turnAround = time.getTime() - self._startTime
+			#create an analysis instance   
+			newAnal = Analysis.Analysis( turnAround, self.waitTime, self.processId)
+			analyses.append(newAnal)
+		
+			#update the amount of time this cpu has been running
+			#print "HEYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY" + str(self.core)
+			coreUsages[self.core] += self.runningTime()
 	
 		print "[time " + str(time.getTime()) + "ms]", ("Interactive" if self.interactive else "CPU-bound"), "process ID", self.processId, "finished", "(turnaround time", str(time.getTime() - self._startTime) + "ms, wait time", str(self._burstwaittime) + "ms)"
 		self._waitTime = time.getTime()
@@ -236,6 +244,13 @@ class scheduler:
 		else:
 			for i in range(len(scheduleData["processes"])):
 				self.processes.append(process(scheduleData["processes"][i], i))
+		
+		#initialize coreUsages
+		#print "NIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII" + str(self.cores)
+		i=0
+		while i < self.cores:
+			coreUsages.append(0)
+			i += 1
 		
 		self.main()
 		
@@ -558,13 +573,19 @@ class scheduler:
 		
 #will look at all analyses and make any total or avg calculations needed, then print the analyses
 def AnalyzeAndPrint():
-	minTurn = 0
+	#so if time.getTime() = 0 then every processes is interactive and thus no time is stepped so there doesn't need to be any analyses anyway
+	if time.getTime() == 0:
+		print "All process we're interactive this time and thus no Analyses were generated. Try again"
+		return
+
+	minTurn = 10000000
 	maxTurn = 0
 	avgTurn = 0
-	minWait = 0
+	minWait = 10000000
 	maxWait = 0
 	avgWait = 0
 	for anal in analyses:
+		#print "heres an analysis"
 		#first do turn around things
 		avgTurn += anal.turnAround
 		if anal.turnAround < minTurn:
@@ -574,9 +595,12 @@ def AnalyzeAndPrint():
 		#now do wait time things
 		avgWait += anal.waitTime
 		if anal.waitTime < minWait:
-			minWait = anal.wait
+			minWait = anal.waitTime
 		elif anal.waitTime > maxWait:
 			maxWait = anal.waitTime
+	#now actually calculate those averages based on how many things there were
+	avgTurn /= len(analyses)
+	avgWait /= len(analyses)
 	
 	#print turn around time statistics
 	print "Turnaround time: min " + str(minTurn) + "ms; avg " + str(avgTurn) + "ms; max " + str(maxTurn) + "ms"
@@ -584,12 +608,15 @@ def AnalyzeAndPrint():
 	print "Total wait time: min " + str(minWait) + "ms; avg " + str(avgWait) + "ms; max " + str(maxWait) + "ms"
 	#print CPU utilization stuff
 	total = 0
-	for i in coreUsages:
-		coreUsages[i] /= Time.getTime()
-	
-		total += i
-	avgCPU = total / len(coreUsages)
-	print "Average CPU utilization per process: " + str(avgCPU) + "%"
+	i = 0
+	while i < len(coreUsages):
+		#print str(coreUsages[i]) +" , " + str(time.getTime()) + " , "+ str(coreUsages[i]/time.getTime())
+		coreUsages[i] /= time.getTime()
+		total += coreUsages[i]
+		i += 1
+		
+	avgCPU = (total / len(coreUsages)) * 100
+	print "Average CPU utilization: " + str(avgCPU) + "%"
 	
 	#print CPU utilization per process stuff
 	print "Average CPU utilization per process:"
@@ -598,8 +625,8 @@ def AnalyzeAndPrint():
 		
 		
 #lets load the json options yay		
-optionsJson = open('options.json')
-data = json.loads(optionsjson)
+#optionsJson = open('options.json')
+#data = json.loads(optionsJson)
 		
 scheduler({})
 

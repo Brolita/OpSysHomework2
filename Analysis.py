@@ -4,6 +4,8 @@ class Analysis:
 		self.turnAround = _turnAround
 		self.waitTime = _waitTime
 		self.processId = _processId
+		
+		#self.avgCPUutil = 
 		#all of the necessary statistics should be calculated in the init
 		
 	#calculates the turn around time
